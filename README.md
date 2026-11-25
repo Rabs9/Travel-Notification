@@ -59,7 +59,7 @@ Do this **on the phone**:
 
 1. Open this link in **Chrome** or **Samsung Internet**:
    **https://github.com/Rabs9/Travel-Notification/releases/latest**
-   and tap **Sundrift.apk** under "Assets" (about 10 MB).
+   and tap **Sundrift.apk** under "Assets" (about 7 MB).
 2. If the phone warns that the file might be harmful, tap **Download anyway**.
 3. When it's downloaded, tap **Open** (or find it in **My Files → Downloads**).
 4. The first time, the phone says it isn't allowed to install apps from this

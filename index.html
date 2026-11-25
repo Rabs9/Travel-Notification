@@ -728,7 +728,7 @@ input[type=date]{color-scheme:dark}
 <div class="set-row"><label>Mode</label><div class="seg" id="setMode" style="width:230px"><button type="button" class="seg-btn pressed" data-mode="demo">🧪 Demo</button><button type="button" class="seg-btn" data-mode="reader">🌐 Public</button><button type="button" class="seg-btn" data-mode="live">⚡ Live</button></div></div>
 <div class="set-hint" id="modeHint">Demo generates illustrative deals.</div>
 <div id="readerBox" hidden>
-<div class="set-hint" style="margin-top:0">🌐 <b style="color:var(--text)">Public mode needs no API key.</b> It reads Ryanair's open public fare-finder sequentially at a human pace with caching &amp; backoff — no login, no captcha bypass. From 🍁 Ottawa or Toronto it reads Transat + Air Transat directly, and Sunwing, Flair and Carnival through the local server (start it with <b>node server.js</b>). From Europe (DUB, STN, BCN…) it reads Ryanair. Prices are real and bookable.</div>
+<div class="set-hint" style="margin-top:0">🌐 <b style="color:var(--text)">Public mode needs no API key.</b> From 🍁 Ottawa or Toronto it reads real prices from Transat, Sunwing, Air Transat, Flair and Carnival; from Europe (DUB, STN, BCN…) it reads Ryanair. Pages are read occasionally, with caching — no login, no captcha bypass. Prices are real and bookable.</div>
 <div class="chips" id="readerOriginChips2"></div>
 </div>
 <div id="liveBox">
@@ -755,7 +755,7 @@ Same-origin Rails proxy avoids CORS entirely.</pre></details>
 <div class="set-row"><label>Demo scan depth</label><select class="select" id="setDepth"><option value="12">Quick · up to 12 sources</option><option value="24" selected>Standard · up to 24</option><option value="36">Deep · up to 36</option></select></div>
 <div class="set-row"><label>Sweep speed</label><div class="seg" id="setSpeed" style="width:190px"><button type="button" class="seg-btn" data-speed="turbo">Turbo</button><button type="button" class="seg-btn pressed" data-speed="brisk">Brisk</button><button type="button" class="seg-btn" data-speed="relaxed">Relaxed</button></div></div>
 <div class="set-hint" id="setEta">Estimated sweep: ~19s</div>
-<div class="set-row"><label>Repeat scan</label><select class="select" id="setAutoEvery"><option value="0">Off · only when I press Scan</option><option value="15">Every 15 minutes</option><option value="30">Every 30 minutes</option><option value="60">Every hour</option><option value="180">Every 3 hours</option><option value="360">Every 6 hours</option><option value="720">Every 12 hours</option></select></div>
+<div class="set-row"><label>Repeat scan</label><select class="select" id="setAutoEvery"><option value="0">Off</option><option value="15">Every 15 minutes</option><option value="30">Every 30 minutes</option><option value="60">Every hour</option><option value="180">Every 3 hours</option><option value="360">Every 6 hours</option><option value="720">Every 12 hours</option></select></div>
 <div class="set-hint" id="setAutoHint">Off — scans run only when you press Scan.</div>
 </div>
 <div class="set-section" id="smsSection">
@@ -1276,7 +1276,7 @@ const list=CA_SOURCES.filter(s=>types.includes(s.t));
 const mine=list.filter((s,i)=>i%passes===(pass-1)%passes);
 const hasProxy=await proxyOk();const deals=[];
 for(const s of mine){
-if(s.proxy&&!hasProxy){log('⚠️ '+s.n+': needs the local server (node server.js) — skipped','err');continue;}
+if(s.proxy&&!hasProxy){log('⚠️ '+s.n+': needs Sundrift.exe or node server.js running — skipped','err');continue;}
 if(token!==scanToken)break;
 try{const rows=await s.run(hub);rows.forEach(r=>{let d=null;try{d=caDeal(r);}catch(e){}if(d)deals.push(d);});log('🍁 '+s.n+' · '+rows.length+' real prices from '+hub,'found');}
 catch(e){log('⚠️ '+s.n+': '+(e&&e.message?e.message:'unreachable'),'err');}
