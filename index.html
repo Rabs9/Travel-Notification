@@ -795,6 +795,20 @@ Same-origin Rails proxy avoids CORS entirely.</pre></details>
 </aside>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <script>
+/* ---- Android app (Capacitor): native HTTP replaces server.js; local notifications replace web Notifications ---- */
+const IS_NATIVE=()=>!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+(function(){if(!IS_NATIVE())return;const LN=window.Capacitor.Plugins&&window.Capacitor.Plugins.LocalNotifications;if(!LN)return;
+let perm='default';const map=r=>r&&r.display==='granted'?'granted':r&&r.display==='denied'?'denied':'default';
+const clicks={};let nextId=1;
+function NativeNotification(title,opts){opts=opts||{};const id=(Date.now()%1e9)+(nextId++);this.onclick=null;const self=this;clicks[id]=()=>{if(self.onclick)self.onclick();};
+LN.schedule({notifications:[{id:id,title:String(title),body:String(opts.body||'')}]}).catch(()=>{});}
+NativeNotification.prototype.close=function(){};
+Object.defineProperty(NativeNotification,'permission',{get:()=>perm});
+NativeNotification.requestPermission=()=>LN.requestPermissions().then(r=>{perm=map(r);return perm;}).catch(()=>perm);
+LN.checkPermissions().then(r=>{perm=map(r);try{syncSettingsUI();renderSmsPill();}catch(e){}}).catch(()=>{});
+LN.addListener('localNotificationActionPerformed',a=>{const f=a&&a.notification&&clicks[a.notification.id];if(f)f();});
+window.Notification=NativeNotification;})();
+
 'use strict';
 /* Rails/Turbo-safe single-file app. Re-mounts on turbo:load, tears down before cache. */
 const PRISTINE='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
@@ -1170,8 +1184,8 @@ return{n:n,co:co,rg:rg,kind:['Caribbean','Mexico','Central America','Florida'].i
 function caOrigin(){return CA_ORIGINS.includes(originCode());}
 function caHub(){const o=originCode();return o==='YTZ'?'YYZ':o;}
 let PROXY_OK=false,PROXY_AT=0;
-async function proxyOk(){if(PROXY_OK||Date.now()-PROXY_AT<60e3)return PROXY_OK;PROXY_AT=Date.now();try{const r=await fetchT('/proxy/health',{},2500);PROXY_OK=r.ok;}catch(e){PROXY_OK=false;}return PROXY_OK;}
-const viaProxy=u=>'/proxy?url='+encodeURIComponent(u);
+async function proxyOk(){if(IS_NATIVE())return true;if(PROXY_OK||Date.now()-PROXY_AT<60e3)return PROXY_OK;PROXY_AT=Date.now();try{const r=await fetchT('/proxy/health',{},2500);PROXY_OK=r.ok;}catch(e){PROXY_OK=false;}return PROXY_OK;}
+const viaProxy=u=>IS_NATIVE()?u:'/proxy?url='+encodeURIComponent(u);
 const CA_CACHE=new Map();
 async function caGet(url,asText,ms){const c=CA_CACHE.get(url);if(c&&Date.now()-c.ts<10*60e3)return c.v;const r=await fetchT(url,{},ms||20000);if(!r.ok)throw new Error('HTTP '+r.status);const v=asText?await r.text():await r.json();CA_CACHE.set(url,{ts:Date.now(),v:v});return v;}
 const cadUSD=n=>Math.max(1,Math.round((Number(n)||0)/(RATES.rates.CAD||FALLBACK_RATES.CAD)));

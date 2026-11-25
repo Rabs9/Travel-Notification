@@ -53,6 +53,42 @@ Made for departures from **Ottawa and Toronto**.
 
 ---
 
+## Install on an Android phone (Samsung Galaxy etc.)
+
+Do this **on the phone**:
+
+1. Open this link in **Chrome** or **Samsung Internet**:
+   **https://github.com/Rabs9/Travel-Notification/releases/latest**
+   and tap **Sundrift.apk** under "Assets" (about 10 MB).
+2. If the phone warns that the file might be harmful, tap **Download anyway**.
+3. When it's downloaded, tap **Open** (or find it in **My Files → Downloads**).
+4. The first time, the phone says it isn't allowed to install apps from this
+   source. Tap **Settings**, turn on **Allow from this source**, then go back.
+5. Tap **Install**. If **Google Play Protect** asks you to scan the app, tap
+   **Scan app**, or tap **More details → Install anyway**.
+6. Tap **Open**. Sundrift is now in your apps like any other app.
+
+**Samsung "Auto Blocker":** if the phone says the install was blocked by Auto
+Blocker:
+1. Go to **Settings → Security and privacy → Auto Blocker** and turn it
+   **off**.
+2. Install Sundrift.
+3. Turn Auto Blocker back **on**. Sundrift keeps working.
+
+**First time in the app:**
+- Tap **🍁 Ottawa** or **🍁 Toronto** under "Flying from", then **Start
+  scanning**.
+- To get deal alerts as phone notifications: open ⚙️ **Settings → Alerts**,
+  choose **Notification**, tap **Enable notifications** and then **Allow**.
+
+**Updating later:** download the new `Sundrift.apk` from the same link and
+install it over the old one. Your settings stay.
+
+Repeat scans run while Sundrift is open on screen. Android pauses apps in the
+background.
+
+---
+
 ## What it searches
 
 Real prices, no account or API key needed:
@@ -115,3 +151,19 @@ The .exe is unsigned, which is why Windows shows the "protected your PC"
 prompt.
 
 Upload `dist/Sundrift.exe` to a GitHub Release.
+
+### Build the Android app
+
+`mobile/` is a [Capacitor](https://capacitorjs.com) project that wraps the
+same `index.html`. On the phone, Capacitor's native HTTP replaces
+`server.js`, so there are no CORS limits, and local notifications replace
+web notifications.
+
+- **Official builds:** `.github/workflows/android.yml` builds a signed
+  `Sundrift.apk`. Push a tag `vX.Y.Z` and the APK is attached to that release.
+  "Run workflow" builds a test APK as an artifact.
+- **Signing:** the key lives in the repo secrets (`SUNDRIFT_KEYSTORE_B64`,
+  `SUNDRIFT_KEYSTORE_PASSWORD`, `SUNDRIFT_KEY_ALIAS`, `SUNDRIFT_KEY_PASSWORD`).
+  Updates only install over the old app when they're signed with the same key.
+- **Local build** (needs the Android SDK and JDK 21):
+  `cd mobile && npm ci && npm run sync && cd android && ./gradlew assembleDebug`

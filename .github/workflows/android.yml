@@ -1,0 +1,83 @@
+name: Android APK
+
+# Builds a signed Sundrift.apk.
+#  - push a tag like v1.2.0  -> APK is attached to that GitHub Release
+#  - "Run workflow" button   -> APK is available as a build artifact (for testing)
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Install and copy the web app into the Android project
+        run: |
+          npm ci
+          npm run sync
+
+      - name: Version from tag
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then V="${GITHUB_REF#refs/tags/v}"; else V="0.0.${GITHUB_RUN_NUMBER}"; fi
+          IFS=. read -r MA MI PA <<<"${V%%-*}"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then CODE=$((MA*10000 + MI*100 + PA)); else CODE=$((GITHUB_RUN_NUMBER)); fi
+          echo "SUNDRIFT_VERSION_NAME=$V" >> "$GITHUB_ENV"
+          echo "SUNDRIFT_VERSION_CODE=$CODE" >> "$GITHUB_ENV"
+          echo "version $V (code $CODE)"
+
+      - name: Signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.SUNDRIFT_KEYSTORE_B64 }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/sundrift.jks"
+          echo "SUNDRIFT_KEYSTORE=$RUNNER_TEMP/sundrift.jks" >> "$GITHUB_ENV"
+
+      - name: Build release APK
+        env:
+          SUNDRIFT_KEYSTORE_PASSWORD: ${{ secrets.SUNDRIFT_KEYSTORE_PASSWORD }}
+          SUNDRIFT_KEY_ALIAS: ${{ secrets.SUNDRIFT_KEY_ALIAS }}
+          SUNDRIFT_KEY_PASSWORD: ${{ secrets.SUNDRIFT_KEY_PASSWORD }}
+        run: |
+          cd android
+          ./gradlew --no-daemon assembleRelease
+          cd ..
+          cp android/app/build/outputs/apk/release/app-release.apk Sundrift.apk
+          "$ANDROID_HOME"/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner verify --print-certs Sundrift.apk | head -3
+          sha256sum Sundrift.apk > Sundrift.apk.sha256
+          rm -f "$RUNNER_TEMP/sundrift.jks"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sundrift-apk
+          path: |
+            mobile/Sundrift.apk
+            mobile/Sundrift.apk.sha256
+
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --title "Sundrift $GITHUB_REF_NAME" --notes "See README for install steps."
+          gh release upload "$GITHUB_REF_NAME" Sundrift.apk Sundrift.apk.sha256 --clobber
