@@ -577,7 +577,7 @@ input[type=date]{color-scheme:dark}
 <div class="radar"><span class="blip b1"></span><span class="blip b2"></span><span class="blip b3"></span></div>
 <div class="scan-info">
 <div class="scan-title" id="scanTitle">🌅 Radar ready</div>
-<div class="scan-meta" id="scanMeta">Trending deals from last night's sweep are below. Start a scan to hunt your exact trip.</div>
+<div class="scan-meta" id="scanMeta">Press Start scanning to look for real deals from your airport.</div>
 <div class="ticker" id="ticker" hidden></div>
 <div class="progress" id="scanProgressWrap" hidden><div class="progress-fill" id="scanProgress"></div></div>
 <div class="progress-label" id="scanProgressLabel" hidden></div>
@@ -612,8 +612,8 @@ input[type=date]{color-scheme:dark}
 <div class="deals-grid" id="dealsGrid"></div>
 <div class="empty" id="resultsEmpty" hidden>
 <div class="empty-ic">🏝️</div>
-<div class="empty-title">Nothing on this horizon</div>
-<div class="empty-sub">No deals match the current filters. Loosen them, or fire a fresh scan and let the radar sweep again.</div>
+<div class="empty-title" id="emptyTitle">Nothing on this horizon</div>
+<div class="empty-sub" id="emptySub">No deals match the current filters. Loosen them, or fire a fresh scan and let the radar sweep again.</div>
 <button type="button" class="btn btn-ghost btn-sm" id="resetFiltersBtn">Reset filters</button>
 </div>
 </div>
@@ -1371,7 +1371,7 @@ d.roundTrip=chance(p.roundTrip?.9:.2);
 d.nonstop=p.nonstop?chance(.65):chance(.45);d.stops=d.nonstop?0:rndi(1,2);
 d.refundable=p.refundable?chance(.7):chance(.3);
 const durBase=DUR[target.rg]||6;
-d.out=leg(d.airline,d.code,durBase,d.stops);
+d.out=leg(d.airline,d.code,durBase,d.stops);d.cabinLabel=CABIN_N[cabin]||'Economy';
 if(type==='package'){
 d.nights=clamp(p.nights+rndi(-2,2),2,21);
 d.stars=chance(.75)?clamp(Math.max(p.stars,3)+rndi(0,1),3,5):rndi(3,5);
@@ -1498,6 +1498,7 @@ function renderDeals(){
 const arr=filteredDeals();
 $('dealsGrid').innerHTML=arr.map((d,i)=>dealCard(d,i)).join('');
 $('resultsEmpty').hidden=arr.length>0;
+const none=!state.deals.length;$('emptyTitle').textContent=none?'No deals yet':'Nothing on this horizon';$('emptySub').textContent=none?'Pick where you fly from and what you want, then press Start scanning to find real deals.':'No deals match the current filters. Loosen them, or fire a fresh scan and let the radar sweep again.';$('resetFiltersBtn').hidden=none;
 updateResultCount();updateBulkBar();}
 function updateResultCount(){
 const arr=filteredDeals();
@@ -2264,7 +2265,7 @@ loadPersist();
 if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)state.settings.motion=false;
 buildStaticChips();
 syncParamsUI();
-if(!state.deals.length)seedTrending();
+if(!state.deals.length&&state.settings.mode==='demo')seedTrending();
 bindEvents();
 renderAll();
 syncSettingsUI();
