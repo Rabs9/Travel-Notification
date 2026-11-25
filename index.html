@@ -407,6 +407,8 @@ input[type=date]{color-scheme:dark}
 .snip-head b{font-size:12.5px;color:var(--text)}
 .bulk-bar{position:fixed;bottom:22px;left:50%;transform:translate(-50%,90px);z-index:130;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;max-width:calc(100vw - 24px);background:rgba(8,22,40,.92);backdrop-filter:blur(14px);border:1px solid rgba(31,217,196,.45);border-radius:16px;padding:10px 16px;box-shadow:var(--shadow);transition:transform .35s cubic-bezier(.2,.85,.25,1.2);pointer-events:none}
 .bulk-bar.show{transform:translate(-50%,0);pointer-events:auto}
+.bulk-bar:not(.show){visibility:hidden;opacity:0;pointer-events:none}
+@media (max-width:480px){.export-btn{display:none!important}.nav-right{gap:6px}}
 .bulk-count{font-size:13px;font-weight:800;color:var(--aqua)}
 .mobile-bar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:125;background:rgba(6,17,31,.92);backdrop-filter:blur(16px);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom));gap:9px}
 .mb-edit{flex-shrink:0}
