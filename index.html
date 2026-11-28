@@ -498,8 +498,8 @@ input[type=date]{color-scheme:dark}
 </svg>
 </div>
 <div class="stats">
-<div class="stat"><span class="stat-ic">🌴</span><div><div class="stat-num" id="statDeals">0</div><div class="stat-label">Deals spotted today</div></div></div>
-<div class="stat"><span class="stat-ic">💸</span><div><div class="stat-num" id="statSavings">0%</div><div class="stat-label">Avg. demo savings</div></div></div>
+<div class="stat"><span class="stat-ic">🌴</span><div><div class="stat-num" id="statDeals">0</div><div class="stat-label">Deals found</div></div></div>
+<div class="stat"><span class="stat-ic">💸</span><div><div class="stat-num" id="statSavings">0%</div><div class="stat-label" id="statSavingsLabel">Avg. demo savings</div></div></div>
 <div class="stat"><span class="stat-ic">🎯</span><div><div class="stat-num" id="statBest">—</div><div class="stat-label">Best match right now</div></div></div>
 <div class="stat"><span class="stat-ic">🛰️</span><div><div class="stat-num" id="statSources">0</div><div class="stat-label">Sources per pass</div></div></div>
 </div>
@@ -693,7 +693,7 @@ input[type=date]{color-scheme:dark}
 </div>
 <div class="set-section">
 <div class="set-title">⬇️ Download this app</div>
-<div class="set-hint">Exports the exact current file, pre-seeded with your present settings, currency, watchlist and saved searches.</div>
+<div class="set-hint">Exports the exact current file, pre-seeded with your present settings, currency, watchlist and saved searches. Your phone number, API token and webhook are left out.</div>
 <div class="conn-row"><button type="button" class="btn btn-sun btn-sm" id="dlStatic">⬇ sundrift.html</button><button type="button" class="btn btn-sea btn-sm" id="dlErb">⬇ sundrift.html.erb</button></div>
 <div class="set-hint" style="margin-top:8px"><b style="color:var(--text)">.html</b> → put in <code>public/</code> (static, no CSP). <b style="color:var(--text)">.html.erb</b> → put in <code>app/views/sundrift/</code>; it carries CSP nonces + <code>csrf_meta_tags</code> for nonce-protected Rails apps.</div>
 </div>
@@ -790,7 +790,7 @@ Same-origin Rails proxy avoids CORS entirely.</pre></details>
 <div class="set-section">
 <div class="set-title">🧹 Data</div>
 <div class="set-hint">Watchlist, saved searches, alert log and settings live in your browser.</div>
-<button type="button" class="btn btn-ghost btn-sm danger-btn" id="resetDataBtn">Reset demo data</button>
+<button type="button" class="btn btn-ghost btn-sm danger-btn" id="resetDataBtn">Clear watchlist &amp; alerts</button>
 </div>
 <button type="button" class="btn btn-sun btn-block" id="settingsDoneBtn" style="margin-top:22px">Done</button>
 </div>
@@ -1031,7 +1031,11 @@ body+='<path d="M640 206 L364 264 Q332 271 338 282 L640 298 Z" fill="#101A36"/><
 }
 return open+body+'</svg>';
 }
-function originCode(p){p=p||state.params;const m=p.origin.match(/\(([A-Z]{3})\)/);return m?m[1]:(p.origin.replace(/[^a-z]/gi,'').slice(0,3).toUpperCase()||'JFK');}
+function originCode(p){p=p||state.params;const m=p.origin.match(/\(([A-Z]{3})\)/);if(m)return m[1];
+const f=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();const t=f(p.origin);
+if(/^[a-z]{3}$/.test(t))return t.toUpperCase();
+if(t.length>=3){const o=ORIGINS.find(x=>f(x).startsWith(t));if(o)return o.match(/\(([A-Z]{3})\)/)[1];try{const k=Object.keys(CA_PLACES).find(c=>f(CA_PLACES[c][0])===t);if(k)return k;}catch(e){}}
+return p.origin.replace(/[^a-z]/gi,'').slice(0,3).toUpperCase()||'YOW';}
 function originCity(p){p=p||state.params;return p.origin.replace(/\s*\([A-Z]{3}\)\s*/,'').trim()||'New York';}
 function effP(p){return p.adults+p.kids*.85;}
 function peopleCount(){return state.params.adults+state.params.kids;}
@@ -1051,7 +1055,7 @@ function customDest(p){const n=p.dest.trim().slice(0,26).replace(/\b\w/g,c=>c.to
 function priceTarget(nat,p,eff){const bpp=p.budget/eff;let pp;if(chance(.72))pp=Math.max(nat*rnd(.55,.8),Math.min(nat,bpp*rnd(.5,.97)));else pp=nat*rnd(1.05,1.55);return Math.max(79,Math.round(pp));}
 function leg(al,code,durH,stops){const a=AIRLINES.find(x=>x.n===al)||AIRLINES[0];const h=pick([6,7,8,9,11,13,15,17,19,21]),m=pick([0,5,15,25,35,45,55]);const dur=durH+stops*1.8+rnd(-.4,.6);const depM=h*60+m,arrM=depM+Math.round(dur*60);return{no:a.c+' '+rndi(100,1899),dep:t12(depM),arr:t12(arrM%1440)+(arrM>=1440?' +1':''),dur:Math.floor(dur)+'h '+String(Math.round((dur%1)*60)).padStart(2,'0')+'m',to:code};}
 const gquery=q=>'https://www.google.com/search?q='+encodeURIComponent(q);
-function aviasalesLink(d){const o=originCode();const ret=d.roundTrip?addD(d.depart,d.nights):null;const cc={coach:'',premium:'w',business:'c',first:'f'}[d.cabin]||'';const ad=clamp(state.params.adults,1,9);const ki=state.params.kids>0?String(clamp(state.params.kids,1,9)):'';return'https://www.aviasales.com/search/'+o+ddmm(d.depart)+d.code+(ret?ddmm(ret):'')+cc+ad+ki;}
+function aviasalesLink(d){const o=d.originIata||originCode();const ret=d.roundTrip?addD(d.depart,d.nights):null;const cc={coach:'',premium:'w',business:'c',first:'f'}[d.cabin]||'';const ad=clamp(state.params.adults,1,9);const ki=state.params.kids>0?String(clamp(state.params.kids,1,9)):'';return'https://www.aviasales.com/search/'+o+ddmm(d.depart)+d.code+(ret?ddmm(ret):'')+cc+ad+ki;}
 function kayakLink(d){const o=(d.originIata||originCode());const ret=d.roundTrip?addD(d.depart,d.nights):null;let u='https://www.kayak.com/flights/'+o+'-'+d.code+'/'+d.depart+(ret?'/'+ret:'')+'/'+state.params.adults+'adults';if(d.cabin!=='coach')u+='?fs=cabin='+{premium:'p',business:'b',first:'f'}[d.cabin];return u;}
 function skyscannerLink(d){const o=(d.originIata||originCode());const ret=d.roundTrip?addD(d.depart,d.nights):null;const cm={coach:'economy',premium:'premiumeconomy',business:'business',first:'first'}[d.cabin];return'https://www.skyscanner.com/transport/flights/'+o.toLowerCase()+'/'+d.code.toLowerCase()+'/'+yymmdd(d.depart)+'/'+(ret?yymmdd(ret)+'/':'')+'?adultsv2='+state.params.adults+'&cabinclass='+cm;}
 function gflightsLink(d){const o=(d.originIata||originCode());const ret=d.roundTrip?addD(d.depart,d.nights):null;let q='Flights from '+o+' to '+d.code+' on '+d.depart+(ret?' through '+ret:' one way');if(d.cabin!=='coach')q+=' '+CABIN_N[d.cabin]+' class';if(d.nonstop)q+=' nonstop';q+=' for '+state.params.adults+' adult'+(state.params.adults>1?'s':'');if(state.params.kids)q+=' and '+state.params.kids+' child'+(state.params.kids>1?'ren':'');return'https://www.google.com/travel/flights?q='+encodeURIComponent(q);}
@@ -1141,7 +1145,7 @@ async function readerRows(pass){
 await loadRates(false);
 const p=state.params;const o=originCode();
 if(!RY_ORIGINS.includes(o))throw new Error('Origin '+o+' is outside the public Ryanair network — pick a reader origin (DUB, STN, BCN…).');
-const ck='ry:'+o+':'+p.date.slice(0,7)+':'+(p.roundTrip?'rt':'ow')+':'+p.nights;
+const ck='ry:'+o+':'+(destCodeForParams()||'any')+':'+p.date+':'+(p.flex?'f':'x')+':'+(p.roundTrip?'rt':'ow')+':'+p.nights;
 const cached=ryCacheGet(ck);if(cached)return cached;
 const from=p.date,to=addD(p.date,p.flex?14:7);
 const dest=destCodeForParams();
@@ -1180,10 +1184,14 @@ function caCodeForName(name){if(!CA_BY_NAME){CA_BY_NAME={};DESTS.forEach(x=>{CA_
 function caPlace(code,name,country){
 if(!code&&name)code=caCodeForName(name);
 const byCode=code&&DESTS.find(x=>x.code===code);const byName=!byCode&&name&&DESTS.find(x=>fold(x.n)===fold(name));const known=byCode||byName;
-if(known)return{n:known.n,co:known.co,rg:known.rg,kind:known.kind,code:known.code};
+if(known)return{n:(name&&byCode&&fold(name)!==fold(known.n))?String(name).trim():known.n,co:known.co,rg:known.rg,kind:known.kind,code:known.code};
 const k=code&&CA_PLACES[code];const n=String(name||(k?k[0]:code)||'Somewhere').trim();const co=country||(k?k[1]:'');const rg=k?k[2]:rgForCountry(co);
 return{n:n,co:co,rg:rg,kind:['Caribbean','Mexico','Central America','Florida'].includes(rg)?'beach':'flight',code:code||''};}
 function caOrigin(){return CA_ORIGINS.includes(originCode());}
+/* Real deals are kept only near the wanted departure date (±21 days if Flexible, else ±7). */
+const dateWin=p=>p.flex?21:7;
+const daysOff=(iso,p)=>Math.round(Math.abs(parseD(iso)-parseD(p.date))/DAY);
+function nearDates(iso,p){p=p||state.params;return!!iso&&iso>=todayISO()&&daysOff(iso,p)<=dateWin(p);}
 function caHub(){const o=originCode();return o==='YTZ'?'YYZ':o;}
 let PROXY_OK=false,PROXY_AT=0;
 async function proxyOk(){if(IS_NATIVE())return true;if(PROXY_OK||Date.now()-PROXY_AT<60e3)return PROXY_OK;PROXY_AT=Date.now();try{const r=await fetchT('/proxy/health',{},2500);PROXY_OK=r.ok;}catch(e){PROXY_OK=false;}return PROXY_OK;}
@@ -1217,8 +1225,8 @@ try{const j=await caGet('https://api.transat.com/cbapi/en-CA/CampaignPackages?ca
 if(p.originAirport&&p.originAirport!==hub)return;
 const h=p.hotel||{};const hn=String(h.nameEN||h.name||'Hotel').trim();const key='tr:'+hub+':'+(h.code||hn)+':'+p.departureDate+':'+p.tripDuration;if(seen.has(key))return;seen.add(key);
 const pl=caPlace(p.destinationAirport,h.cityEN||h.city,h.countryEN||h.country);if(!caWants(pl))return;
-const meal=String(p.mealPlanCode||'').toUpperCase();const st=Math.round(Number(h.starRating)||0);
-out.push({type:'package',provider:'Transat',dom:'transat.com',key:key,place:pl,code:p.destinationAirport,depart:p.departureDate,nights:p.tripDuration,cad:p.totalPrice,url:p.bookUrl||('https://www.transat.com'+(p.transatSearchUrl||'')),airline:'Air Transat',outNo:'TS '+(p.flightNumberOutbound||''),retNo:'TS '+(p.flightNumberReturn||''),outDep:String(p.outboundDepartureTime||'').slice(0,5),outArr:String(p.outboundArrivalTime||'').slice(0,5),retDep:String(p.returnDepartureTime||'').slice(0,5),stars:st,ai:meal==='AI',hotel:{name:hn,stars:st,room:'Standard room',board:MEAL[meal]||meal||'See Transat'},title:p.tripDuration+' nights at '+hn,perks:['Real Transat price · taxes incl.','Flight + hotel']});});
+const meal=String(p.mealPlanCode||'').toUpperCase();const st=Math.floor(Number(h.starRating)||0);
+out.push({type:'package',provider:'Transat',dom:'transat.com',key:key,place:pl,code:p.destinationAirport,depart:p.departureDate,nights:p.tripDuration,cad:p.totalPrice,url:p.bookUrl||('https://www.transat.com'+(p.transatSearchUrl||'')),airline:'Air Transat',outNo:'TS '+(p.flightNumberOutbound||''),retNo:'TS '+(p.flightNumberReturn||''),outDep:String(p.outboundDepartureTime||'').slice(0,5),outArr:String(p.outboundArrivalTime||'').slice(0,5),retDep:String(p.returnDepartureTime||'').slice(0,5),stars:st,ai:meal==='AI',hotel:{name:hn,stars:st,room:String(p.roomName||'Standard room').trim(),board:MEAL[meal]||meal||'See Transat'},title:p.tripDuration+' nights at '+hn,perks:['Real Transat price · taxes incl.','Flight + hotel']});});
 }catch(e){lastErr=e;}}
 if(!ok&&lastErr)throw lastErr;
 return out;}
@@ -1228,8 +1236,8 @@ const groups=walkJSON(j,o=>!!(o.Gateway&&o.PromotionGroups),[]).filter(g=>g.Gate
 const out=[];const seen=new Set();
 groups.forEach(g=>(g.PromotionGroups||[]).forEach(pg=>(pg.Offers||[]).forEach(f=>{
 const dest=f.Destination||{};const acc=f.AccommodationInfo||{};const pl=caPlace('',dest.Name,dest.CountryName);if(!caWants(pl))return;
-const dep=String(f.DepartureDate||'').slice(0,10);const key='sw:'+hub+':'+(acc.AccommodationCode||acc.AccommodationName)+':'+dep+':'+f.Duration;if(!dep||seen.has(key))return;seen.add(key);
-const st=Math.round(Number(acc.StarRating)||0);const nm=acc.AccommodationName||'Hotel';
+const dep=String(f.DepartureDate||'').slice(0,10);const key='sw:'+hub+':'+(acc.AccommodationCode||acc.AccommodationName)+':'+dep+':'+f.Duration;if(!dep||!nearDates(dep)||seen.has(key))return;seen.add(key);
+const st=Math.floor(Number(acc.StarRating)||0);const nm=acc.AccommodationName||'Hotel';
 out.push({type:'package',provider:'Sunwing',dom:'sunwing.ca',key:key,place:pl,depart:dep,nights:f.Duration,cad:f.Price,url:f.DeepLink,airline:'Sunwing',stars:st,ai:/all.?inclusive/i.test(f.MealPlan||''),hotel:{name:nm,stars:st,room:'Standard room',board:f.MealPlan||'See Sunwing'},title:f.Duration+' nights at '+nm,perks:['Real Sunwing price · taxes incl.'+(f.SaveUpto?' · save up to '+f.SaveUpto+'%':''),pg.title?String(pg.title).trim():'Flight + hotel']});})));
 out.sort((a,b)=>a.cad-b.cad);return out.slice(0,40);}
 async function caAirTransat(hub){
@@ -1278,10 +1286,10 @@ const hasProxy=await proxyOk();const deals=[];
 for(const s of mine){
 if(s.proxy&&!hasProxy){log('⚠️ '+s.n+': needs Sundrift.exe or node server.js running — skipped','err');continue;}
 if(token!==scanToken)break;
-try{const rows=await s.run(hub);rows.forEach(r=>{let d=null;try{d=caDeal(r);}catch(e){}if(d)deals.push(d);});log('🍁 '+s.n+' · '+rows.length+' real prices from '+hub,'found');}
-catch(e){log('⚠️ '+s.n+': '+(e&&e.message?e.message:'unreachable'),'err');}
+try{const rows=await s.run(hub);let n=0;rows.forEach(r=>{let d=null;try{d=caDeal(r);}catch(e){}if(d&&nearDates(d.depart)){deals.push(d);n++;}});log('🍁 '+s.n+(n?' · '+n+' real prices near your dates from '+hub:' · none near your dates from '+hub+' right now'),n?'found':'');}
+catch(e){if(s.proxy&&!IS_NATIVE()&&e instanceof TypeError){PROXY_OK=false;PROXY_AT=Date.now();log('⚠️ '+s.n+': the Sundrift helper has stopped — close this tab and open Sundrift again','err');}else log('⚠️ '+s.n+': '+(e&&e.message?e.message:'unreachable'),'err');}
 await sleep(rnd(400,900));}
-if(pass===1&&types.includes('train'))log('🚆 Trains: VIA Rail / Ontario Northland publish no public prices — use 🔗 Search links for prefilled searches');
+if(pass===1&&types.includes('train'))log('🚆 Trains: VIA Rail / Ontario Northland publish no public prices — use 🔎 Live searches for prefilled searches');
 return deals;}
 function ontarioLinks(p,o,code,ret,types,row){
 const hub=o==='YTZ'?'YYZ':o;const city=hub==='YOW'?'ottawa':'toronto';const cityN=hub==='YOW'?'Ottawa':'Toronto';
@@ -1422,6 +1430,9 @@ if(d.type==='flight'||d.type==='train')add('Amenities',12,1,'Not applicable');
 else if(!p.amen.length)add('Amenities',12,1,'No must-haves set');
 else if(d.ca&&!d.amen.length)add('Amenities',12,.5,'Not listed by '+d.provider+' — check the site');
 else{const hit=p.amen.filter(k=>d.amen.includes(k));add('Amenities',12,hit.length/p.amen.length,hit.length+'/'+p.amen.length+' must-haves');}
+if(d.depart&&p.date){const off=daysOff(d.depart,p),tol=p.flex?3:0;let f=off<=tol?1:clamp(1-(off-tol)/11,0,1);let det=off===0?'Leaves on your date':'Leaves '+fmtD(d.depart)+' · '+off+' day'+(off===1?'':'s')+' '+(d.depart<p.date?'early':'late');
+if((d.type==='package'||d.type==='cruise'||(d.type==='flight'&&d.roundTrip))&&d.nights&&p.nights){const dn=Math.abs(d.nights-p.nights);if(dn>1){f*=clamp(1-(dn-1)/6,.3,1);det+=' · '+d.nights+' nights (wanted '+p.nights+')';}}
+add('Dates',10,f,det);}
 const flags=[];
 if(d.type==='package'||d.type==='cruise')flags.push(['All-inclusive',!p.ai||d.ai]);
 if(d.type==='flight'||d.type==='package')flags.push([p.roundTrip?'Round trip':'One-way',p.roundTrip?d.roundTrip:!d.roundTrip]);
@@ -1429,11 +1440,12 @@ if((d.type==='flight'||d.type==='package')&&p.nonstop)flags.push(['Nonstop',d.no
 if(p.refundable)flags.push(['Refundable',d.refundable]);
 if(!flags.length)add('Preferences',12,1,'No extra preferences');
 else{const w=12/flags.length;flags.forEach(f=>add(f[0],w,f[1]?1:0,f[1]?'Included':'Not included'));}
-return{score:clamp(Math.round(s),0,100),lines:L};}
+const mx=L.reduce((a,l)=>a+l.max,0)||100;
+return{score:clamp(Math.round(s*100/mx),0,100),lines:L};}
 function ringSVG(score,color){const off=(113.1*(1-score/100)).toFixed(1);return'<svg class="ring" viewBox="0 0 44 44"><circle class="ring-bg" cx="22" cy="22" r="18"/><circle class="ring-fg" cx="22" cy="22" r="18" style="stroke:'+color+';stroke-dashoffset:'+off+'"/><text class="ring-txt" x="22" y="26.5" text-anchor="middle">'+score+'</text></svg>';}
 function metaLine(d){
 if(d.type==='flight')return (d.originIata||originCode())+' '+(d.roundTrip?'⇄':'→')+' '+d.code+' · '+(d.nonstop?'Nonstop':d.stops+' stop')+' · '+d.cabinLabel+' · '+d.airline;
-if(d.type==='package')return d.nights+' nights · '+originCode()+' ⇄ '+d.code+' · '+(d.ai?'All-inclusive':'Breakfast')+' · '+d.airline;
+if(d.type==='package')return d.nights+' nights · '+(d.originIata||originCode())+' ⇄ '+d.code+' · '+(d.ai?'All-inclusive':'Breakfast')+' · '+d.airline;
 if(d.type==='cruise')return d.nights+' nights · '+d.ship+' · from '+d.embark;
 return d.from+' → '+d.to+' · '+d.cabinLabel+' · '+d.dur;}
 function datesLine(d){
@@ -1540,12 +1552,15 @@ $('tabAlertCount').textContent=state.smsLog.length;}
 function renderSavedChips(){
 $('savedChips').innerHTML=state.saved.map(s=>'<button type="button" class="saved-chip" data-action="apply" data-id="'+s.id+'" title="Apply this search">'+esc(s.name)+'<span class="chip-x" data-action="delsearch" data-id="'+s.id+'" title="Delete search">✕</span></button>').join('');
 $('savedRow').style.display=state.saved.length?'flex':'none';}
+function srcCountNow(){const t=state.params.types.length?state.params.types:['flight','package','cruise','train'];if(realFlight()==='reader'&&caOrigin())return CA_SOURCES.filter(x=>t.includes(x.t)).length;return buildSources(activeDemoTypes()).length+(realFlight()?1:0);}
 function renderStats(animate){
-const deals=132+state.sessionFinds;
+const deals=state.deals.length;
 const demo=state.deals.filter(d=>!d.live&&!d.reader);
 const sav=demo.length?Math.round(demo.reduce((a,d)=>a+savPct(d),0)/demo.length):0;
 const best=state.deals.length?Math.max(...state.deals.map(d=>scoreDeal(d,state.params).score)):0;
-const src=buildSources(activeDemoTypes()).length+(realFlight()?1:0);
+const src=srcCountNow();
+if(state.settings.mode!=='demo'){const real=state.deals.filter(d=>d.live||d.reader);$('statSavingsLabel').textContent='Cheapest trip found';$('statSavings').textContent=real.length?fmt(Math.min(...real.map(dealTotal))):'—';$('statDeals').textContent=deals;$('statBest').textContent=best?best+'%':'—';$('statSources').textContent=src;return;}
+$('statSavingsLabel').textContent='Avg. demo savings';
 if(animate){countUp($('statDeals'),deals,'');countUp($('statSavings'),sav,'%');countUp($('statSources'),src,'');$('statBest').textContent=best?best+'%':'—';}
 else{$('statDeals').textContent=deals;$('statSavings').textContent=sav+'%';$('statBest').textContent=best?best+'%':'—';$('statSources').textContent=src;}}
 function countUp(el,val,suffix){const t0=performance.now();const step=t=>{const k=clamp((t-t0)/900,0,1);el.textContent=Math.round(val*(1-Math.pow(1-k,3)))+suffix;if(k<1)requestAnimationFrame(step);};requestAnimationFrame(step);}
@@ -1605,10 +1620,13 @@ function shortDesc(d){if(d.type==='flight')return(d.roundTrip?'round-trip':'one-
 function buildSmsText(d,score){const was=(d.live||d.reader)?'':' (was '+fmt(origTotal(d))+')';return'Sundrift 🌴 '+score+'% match — '+d.dest+': '+shortDesc(d)+' · '+fmt(dealTotal(d))+' for '+peopleCount()+was+'.'+(state.settings.includeLink?' Book: '+primaryLink(d):'')+(state.settings.channel==='handoff'?' Reply STOP to opt out.':'');}
 function finishEntry(e,status,meta){e.status=status;e.meta=meta||'';persist();if(state.tab==='alerts')renderAlerts();}
 function launchSMS(e){
-const uri='sms:+'+phoneDigits()+'?body='+encodeURIComponent(e.text);
-try{window.location.href=uri;}catch(err){}
-finishEntry(e,'opened','Handed to your Messages app');
-AudioFX.play('sms');toast('Opening your Messages app — tap send','📲');}
+let dg=phoneDigits();if(dg.length===10)dg='1'+dg;
+const uri='sms:+'+dg+'?body='+encodeURIComponent(e.text);
+const mobile=IS_NATIVE()||/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+if(mobile){try{window.location.href=uri;}catch(err){}finishEntry(e,'opened','Handed to your Messages app');AudioFX.play('sms');toast('Opening your Messages app — tap send','📲');return;}
+try{const a=document.createElement('a');a.href=uri;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();}catch(err){}
+try{if(navigator.clipboard)navigator.clipboard.writeText(e.text).catch(()=>{});}catch(err){}
+finishEntry(e,'opened','Message copied — paste it into a text');AudioFX.play('sms');toast('Message copied — paste it into a text on your phone','📋');}
 async function webhookSend(e){
 const url=state.settings.webhookUrl.trim();
 const payload={to:state.settings.phone?formatPhone(state.settings.phone):'',message:e.text,link:e.snapshot?primaryLink(e.snapshot):'',deal:e.snapshot?{title:e.snapshot.title,dest:e.snapshot.dest,total:dealTotal(e.snapshot),depart:e.snapshot.depart}:null,source:'Sundrift'};
@@ -1688,8 +1706,8 @@ const s=scoreDeal(d,state.params),t=tier(s.score),total=dealTotal(d),orig=origTo
 const p=state.params;
 let fareRows='<div class="pt-row"><span>'+p.adults+' adult'+(p.adults>1?'s':'')+' × '+fmt(d.pp)+'</span><b>'+fmt(p.adults*d.pp)+'</b></div>'
 +(p.kids?'<div class="pt-row"><span>'+p.kids+' child'+(p.kids>1?'ren':'')+' × '+fmt(d.pp*.85)+'</span><b>'+fmt(p.kids*d.pp*.85)+'</b></div>':'')
-+'<div class="pt-row"><span>Taxes &amp; fees</span><b>'+((d.live||d.reader)?'see provider':'included')+'</b></div>'
-+'<div class="pt-row pt-total"><span>Total for '+peopleCount()+'</span><b>'+fmt(total)+'</b></div>';
++'<div class="pt-row"><span>Taxes &amp; fees</span><b>'+((d.ca&&d.type!=='cruise')?'included':(d.live||d.reader)?'see provider':'included')+'</b></div>'
++'<div class="pt-row pt-total"><span>Total for '+peopleCount()+'</span><b>'+((d.live||d.reader)?'≈ ':'')+fmt(total)+'</b></div>';
 if(!d.live&&!d.reader)fareRows+='<div class="pt-row"><span>Typical price</span><span style="text-decoration:line-through">'+fmt(orig)+'</span></div><div class="pt-row"><span class="pt-save">You save '+savPct(d)+'%</span><span class="pt-save">−'+fmt(orig-total)+'</span></div>';
 else fareRows+='<div class="pt-row"><span>Source</span><b>'+(d.ca?esc(d.provider)+' public prices':d.reader?'Ryanair public fare finder':'Aviasales real-time cache')+'</b></div>';
 const lines=s.lines.map(l=>'<div class="ml"><span class="ml-ic '+l.ok+'">'+(l.ok==='yes'?'✓':l.ok==='part'?'◐':'✕')+'</span><span class="ml-label">'+esc(l.label)+'</span><span class="ml-pts">'+l.pts+'/'+Math.round(l.max)+'</span><span class="ml-detail">'+esc(l.detail)+'</span></div>').join('');
@@ -1765,7 +1783,7 @@ controller:'# app/controllers/sundrift_controller.rb\nclass SundriftController <
 csp:'# config/initializers/content_security_policy.rb\nRails.application.configure do\n  config.content_security_policy do |p|\n    p.default_src :self\n    p.script_src  :self, "https://cdn.jsdelivr.net"\n    p.style_src   :self, "https://cdn.jsdelivr.net"\n    p.font_src    :self, "https://cdn.jsdelivr.net", :data\n    p.img_src     :self, :data, :blob\n    p.connect_src :self,\n      "https://api.travelpayouts.com",\n      "https://services-api.ryanair.com",\n      "https://open.er-api.com",\n      "https://api.frankfurter.app"\n    p.frame_ancestors :self\n  end\n  config.content_security_policy_nonce_generator =\n    ->(request) { SecureRandom.base64(16) }\n  config.content_security_policy_nonce_directives = %w[script-src style-src]\nend\n# Use the downloaded sundrift.html.erb so inline <style>/<script> carry the nonce.\n',
 proxy:'# app/controllers/fares_controller.rb\nrequire "net/http"\nrequire "json"\nclass FaresController < ApplicationController\n  def index\n    o = params[:origin].to_s.upcase\n    d = params[:destination].to_s.upcase\n    dep = params[:depart].to_s\n    ret = params[:return].to_s\n    base = "https://services-api.ryanair.com/farfnd/v4/"\n    path = ret.present? ? "roundTripFares" : "oneWayFares"\n    q = { departureAirportIataCode: o,\n          outboundDepartureDateFrom: dep,\n          outboundDepartureDateTo: (Date.parse(dep) + 7).to_s,\n          currency: "EUR", limit: 12 }\n    q[:arrivalAirportIataCode] = d if d.present?\n    if ret.present?\n      q[:inboundDepartureDateFrom] = ret\n      q[:inboundDepartureDateTo] = (Date.parse(ret) + 7).to_s\n    end\n    uri = URI(base + path + "?" + URI.encode_www_form(q))\n    res = Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 5, read_timeout: 8) do |http|\n      http.get(uri.request_uri, "User-Agent" => "Sundrift/1.0")\n    end\n    fares = JSON.parse(res.body)["fares"] || []\n    deals = fares.map do |f|\n      ob = f["outbound"]; ib = f["inbound"]\n      { code: ob["arrivalAirport"]["iataCode"],\n        price: (f.dig("summary","price","value") || ob["price"]["value"]),\n        airline: "FR",\n        depart: ob["departureDate"][0,10],\n        return: ib ? ib["departureDate"][0,10] : nil,\n        stops: 0,\n        url: "https://www.ryanair.com/gb/en/trip/flights/select?originIata=#{o}&destinationIata=#{ob["arrivalAirport"]["iataCode"]}&dateOut=#{ob["departureDate"][0,10]}" }\n    end\n    render json: { deals: deals }\n  rescue => e\n    render json: { deals: [], error: e.message }, status: 502\n  end\nend\n',
 fonts:'# Pixel-identical type without the CDN:\nnpm i @fontsource/outfit @fontsource/fraunces\nmkdir -p app/assets/fonts\ncp node_modules/@fontsource/outfit/files/outfit-latin-400-normal.woff2 app/assets/fonts/\ncp node_modules/@fontsource/outfit/files/outfit-latin-700-normal.woff2 app/assets/fonts/\ncp node_modules/@fontsource/fraunces/files/fraunces-latin-700-normal.woff2 app/assets/fonts/\n# then add @font-face in application.css and delete the two CDN <link> tags:\n@font-face{font-family:"Outfit";font-weight:400;src:url("/assets/outfit-latin-400-normal.woff2") format("woff2");font-display:swap}\n@font-face{font-family:"Outfit";font-weight:700;src:url("/assets/outfit-latin-700-normal.woff2") format("woff2");font-display:swap}\n@font-face{font-family:"Fraunces";font-weight:700;src:url("/assets/fraunces-latin-700-normal.woff2") format("woff2");font-display:swap}\n'};
-function bootPayload(){return {params:state.params,settings:state.settings,watch:state.watch,saved:state.saved,smsLog:state.smsLog};}
+function bootPayload(){return {params:state.params,settings:Object.assign({},state.settings,{tpToken:'',phone:'',webhookUrl:''}),watch:state.watch,saved:state.saved,smsLog:[]};}
 function buildExport(erb){
 let src=PRISTINE;
 const boot='<script id="sd-boot">window.__SD_BOOT__='+JSON.stringify(bootPayload()).replace(/</g,'\\u003c')+';<\/script>';
@@ -1800,9 +1818,10 @@ $('diagList').innerHTML=rows.map(r=>{const ic=r.ok===true?'ok':r.ok==='warn'?'wa
 function runSelfTest(){
 const out=[];const t=(name,fn)=>{try{const r=fn();out.push({name:name,ok:!!r,detail:r===true?'pass':String(r)});}catch(e){out.push({name:name,ok:false,detail:e.message});}};
 const d={type:'flight',reader:false,live:false,cabin:'coach',roundTrip:true,depart:'2026-03-14',nights:7,code:'CUN',originIata:'JFK',pp:300,origPP:400,dest:'Cancún',country:'Mexico',rg:'Mexico',stars:0,amen:[],ai:false,nonstop:true,stops:0,refundable:false,airline:'Delta',cabinLabel:'Economy',kind:'resort',provider:'Kayak',dom:'kayak.com',apiLink:'',id:'T1'};
-t('Aviasales deep-link format',()=>aviasalesLink(d)==='https://www.aviasales.com/search/JFK1403CUN21032');
-t('Kayak deep-link format',()=>kayakLink(d)==='https://www.kayak.com/flights/JFK-CUN/2026-03-14/2026-03-21/2adults');
-t('Skyscanner deep-link format',()=>skyscannerLink(d)==='https://www.skyscanner.com/transport/flights/jfk/cun/260314/260321/?adultsv2=2&cabinclass=economy');
+const AD=state.params.adults,KI=state.params.kids;
+t('Aviasales deep-link format',()=>aviasalesLink(d)==='https://www.aviasales.com/search/JFK1403CUN2103'+clamp(AD,1,9)+(KI>0?String(clamp(KI,1,9)):''));
+t('Kayak deep-link format',()=>kayakLink(d)==='https://www.kayak.com/flights/JFK-CUN/2026-03-14/2026-03-21/'+AD+'adults');
+t('Skyscanner deep-link format',()=>skyscannerLink(d)==='https://www.skyscanner.com/transport/flights/jfk/cun/260314/260321/?adultsv2='+AD+'&cabinclass=economy');
 t('Booking link carries currency',()=>bookingLink(Object.assign({},d,{type:'package',stars:4})).indexOf('selected_currency='+state.settings.currency)>=0);
 t('Ryanair link builds',()=>{const r=Object.assign({},d,{reader:true,originIata:'DUB',code:'AGP'});return ryanairLink(r).indexOf('originIata=DUB')>=0;});
 t('Date math addD',()=>addD('2026-03-14',7)==='2026-03-21');
@@ -1855,7 +1874,7 @@ const rf=realFlight();
 const eta=Math.max(2,Math.round(state.settings.passes*demoSrc*SPEED[state.settings.speed]/1000)+(rf?state.settings.passes*(rf==='reader'?2:1.2):0));
 $('scanBtnSub').textContent=rf==='reader'?state.settings.passes+' passes · public reader'+(demoSrc?' + '+demoSrc+' demo':''):rf==='live'?state.settings.passes+' passes · live fares'+(demoSrc?' + '+demoSrc+' demo sources':''):state.settings.passes+' passes · '+demoSrc+' sources · ~'+eta+'s';
 $('setEta').textContent='Estimated sweep: ~'+Math.round(eta)+'s';
-$('statSources').textContent=demoSrc+(rf?1:0);}
+$('statSources').textContent=srcCountNow();}
 function applySound(){
 $('soundBtn').textContent=state.settings.sound?'🔊':'🔇';
 $('soundBtn').setAttribute('aria-pressed',state.settings.sound);
@@ -1885,12 +1904,15 @@ $('scanBtn').disabled=active;
 $('scanBtn').innerHTML=active?'🛰️ Scanning…':'🛰️ Start scanning';
 $('mbScan').innerHTML=active?'■ Stop scan':'🛰️ Start scanning';
 $('mbScan').classList.toggle('btn-sea',active);}
-async function startScan(){
+async function startScan(opts){
+const auto=!!(opts&&opts.auto===true);
 if(state.scanning)return;
 const rf=realFlight();
 if(state.settings.mode==='live'&&!liveConnected()){toast('Connect a live source or Rails proxy in Settings → Data','⚠️');AudioFX.play('error');openSettings('data');return;}
 state.scanning=true;const token=++scanToken;activeScanToken=token;
 const p=state.params;
+state.deals.forEach(d=>{d.fresh=false;});
+if(rf){const hub=(rf==='reader'&&caOrigin())?caHub():originCode();const n0=state.deals.length;state.deals=state.deals.filter(d=>!(d.live||d.reader)||((!d.originIata||d.originIata===hub)&&nearDates(d.depart,p)));if(state.deals.length!==n0){state.selection.clear();renderDeals();}}
 const types=p.types.length?p.types:['flight','package','cruise','train'];
 const ca=rf==='reader'&&caOrigin();
 const demoTypes=ca?[]:rf?types.filter(t=>t!=='flight'):types;
@@ -1899,14 +1921,17 @@ const passes=state.settings.passes;
 const totalSteps=Math.max(1,passes*((rf?1:0)+sources.length));
 const findsTarget=demoTypes.length?clamp(6+passes*2+(state.settings.depth>=36?6:state.settings.depth>=24?3:0),8,42):0;
 let finds=0,realFinds=0,realErrors=0,step=0,lastAlert=0,alertCount=0;
-setTab('results');
-if(window.innerWidth<1080)$('resultsArea').scrollIntoView({behavior:'smooth',block:'start'});
+if(!auto){setTab('results');
+if(window.innerWidth<1080)$('resultsArea').scrollIntoView({behavior:'smooth',block:'start'});}
 scanUI(true);
 $('scanTitle').textContent=rf==='reader'?'🌐 Reading public fares (no API key)…':rf==='live'?'🛰️ Sweeping live fares + the web…':'🛰️ Sweeping the web…';
 $('scanMeta').textContent=passes+' passes · '+(ca?'real prices · Transat, Sunwing, Air Transat, Flair, Carnival':(rf==='reader'?'Ryanair public + ':rf==='live'?'Travelpayouts / proxy + ':'')+sources.length+' demo sources');
 $('ticker').innerHTML='';setProgress(0,'Warming up the radar…');
 AudioFX.play('start');
-const maybeAlert=d=>{const sc=scoreDeal(d,state.params).score;if(state.settings.alertsOn&&sc>=state.settings.threshold&&alertCount<state.settings.maxAlerts&&Date.now()-lastAlert>3200){dispatchAlert(d,sc);alertCount++;lastAlert=Date.now();}};
+const alertQ=[];
+const maybeAlert=d=>{if(!state.settings.alertsOn||!channelReady())return;const sc=scoreDeal(d,state.params).score;if(sc<state.settings.threshold)return;
+if(d.liveKey&&state.smsLog.some(e=>e.snapshot&&e.snapshot.liveKey===d.liveKey&&e.snapshot.pp<=d.pp))return;alertQ.push([d,sc]);};
+const flushAlerts=()=>{alertQ.sort((a,b)=>b[1]-a[1]);while(alertQ.length&&alertCount<state.settings.maxAlerts){const x=alertQ.shift();dispatchAlert(x[0],x[1]);alertCount++;}alertQ.length=0;};
 try{
 for(let pass=1;pass<=passes;pass++){
 if(rf){
@@ -1958,10 +1983,11 @@ if(step%3===0)AudioFX.play('tick');
 }
 setProgress(step/totalSteps,'Pass '+pass+' of '+passes+' · '+step+'/'+totalSteps+' checks · '+(finds+realFinds)+' deals');
 }
+flushAlerts();
 tickLine('— pass '+pass+'/'+passes+' complete · '+(finds+realFinds)+' deals so far —','pass');
 }
-finishScan(false,finds+realFinds,passes,sources.length+(rf?1:0),token,realErrors);
-}catch(err){if(!(err&&err.aborted))console.error(err);finishScan(true,finds+realFinds,passes,sources.length+(rf?1:0),token,realErrors);}
+flushAlerts();finishScan(false,finds+realFinds,passes,srcCountNow(),token,realErrors);
+}catch(err){if(!(err&&err.aborted))console.error(err);flushAlerts();finishScan(true,finds+realFinds,passes,srcCountNow(),token,realErrors);}
 }
 function finishScan(aborted,finds,passes,srcCount,token,realErrors){
 if(token!==activeScanToken)return;
@@ -1980,12 +2006,15 @@ let autoNextAt=0,autoTimer=null;
 const fmtClock=ts=>new Date(ts).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
 function scheduleAuto(){const m=+state.settings.autoEvery||0;autoNextAt=m?Date.now()+m*60000:0;renderAutoStatus();}
 function renderAutoStatus(){const el=$('setAutoHint');if(!el)return;const m=+state.settings.autoEvery||0;
-el.textContent=!m?'Off — scans run only when you press Scan.':state.scanning?'On — scanning now.':autoNextAt?'On — next scan at '+fmtClock(autoNextAt)+'. Keep this tab open (it can be in the background).':'On.';}
+el.textContent=!m?'Off — scans run only when you press Scan.':state.scanning?'On — scanning now.':autoNextAt?'On — next scan at '+fmtClock(autoNextAt)+'. '+(IS_NATIVE()?'Keep Sundrift open on screen (Android pauses apps in the background).':'Keep this tab open (it can be in the background).'):'On.';}
 function autoTick(){if(!autoNextAt||Date.now()<autoNextAt)return;
 if(state.scanning){autoNextAt=Date.now()+60000;return;}
 if(state.settings.mode==='live'&&!liveConnected()){scheduleAuto();return;}
-autoNextAt=0;startScan();}
+autoNextAt=0;startScan({auto:true});}
 function startAutoTimer(){if(autoTimer)clearInterval(autoTimer);autoTimer=setInterval(autoTick,20000);scheduleAuto();}
+/* While the page is open, ping the local server once a minute so the Linux launcher knows not to stop it. */
+let hbTimer=null;
+function startHeartbeat(){if(hbTimer)clearInterval(hbTimer);hbTimer=null;if(IS_NATIVE()||!/^https?:$/.test(location.protocol))return;hbTimer=setInterval(()=>{fetch('/proxy/health',{cache:'no-store'}).catch(()=>{});},60000);}
 function setTab(tab){
 state.tab=tab;
 $$('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
@@ -2030,7 +2059,7 @@ $('rtLabel').textContent=p.roundTrip?'🔁 Round trip':'➡️ One-way';}
 function syncRegionPressed(){
 const q=state.params.dest.toLowerCase();
 $$('#regionChips .chip').forEach(b=>{const r=b.dataset.region.toLowerCase();b.classList.toggle('pressed',r==='anywhere'?q.includes('anywhere'):q===r);});}
-const rescore=debounce(()=>{renderDeals();renderWatchlist();renderStats(false);renderTypeFilterChips();refreshDrawer();updateScanMeta();renderModeUI();persist();},140);
+const rescore=debounce(()=>{renderDeals();renderWatchlist();renderStats(false);renderTypeFilterChips();refreshDrawer();updateScanMeta();renderModeUI();persist();},260);
 function paramChanged(){syncParamsUI();rescore();}
 function saveCurrentSearch(){
 const p=state.params;
@@ -2042,6 +2071,7 @@ toast('Search saved — reapply it anytime','📌');}
 function applySearch(id){
 const s=state.saved.find(x=>x.id===id);if(!s)return;
 state.params=Object.assign(cl(DEF_PARAMS),cl(s.params));
+if(state.params.date<todayISO())state.params.date=addD(todayISO(),30);
 paramChanged();AudioFX.play('save');
 toast('Search applied — hit Start scanning','🧭');}
 function deleteSearch(id){
@@ -2242,19 +2272,19 @@ on('setSound','change',e=>{state.settings.sound=e.target.checked;applySound();pe
 on('setMotion','change',e=>{state.settings.motion=e.target.checked;applyMotion();persist();});
 let resetArmed=false,resetTimer=null;
 on('resetDataBtn','click',()=>{
-if(!resetArmed){resetArmed=true;$('resetDataBtn').textContent='Click again to confirm';$('resetDataBtn').classList.add('armed');resetTimer=setTimeout(()=>{resetArmed=false;$('resetDataBtn').textContent='Reset demo data';$('resetDataBtn').classList.remove('armed');},3000);return;}
-clearTimeout(resetTimer);resetArmed=false;$('resetDataBtn').textContent='Reset demo data';$('resetDataBtn').classList.remove('armed');
+if(!resetArmed){resetArmed=true;$('resetDataBtn').textContent='Click again to confirm';$('resetDataBtn').classList.add('armed');resetTimer=setTimeout(()=>{resetArmed=false;$('resetDataBtn').textContent='Clear watchlist & alerts';$('resetDataBtn').classList.remove('armed');},3000);return;}
+clearTimeout(resetTimer);resetArmed=false;$('resetDataBtn').textContent='Clear watchlist & alerts';$('resetDataBtn').classList.remove('armed');
 const backup={watch:state.watch.slice(),saved:state.saved.slice(),sms:state.smsLog.slice()};
 state.watch=[];state.saved=[];state.smsLog=[];
 persist();renderBadges();renderWatchlist();renderAlerts();renderSavedChips();renderDeals();
-toast('Demo data reset','🧹',()=>{state.watch=backup.watch;state.saved=backup.saved;state.smsLog=backup.sms;persist();renderBadges();renderWatchlist();renderAlerts();renderSavedChips();renderDeals();});});
+toast('Watchlist, saved searches and alerts cleared','🧹',()=>{state.watch=backup.watch;state.saved=backup.saved;state.smsLog=backup.sms;persist();renderBadges();renderWatchlist();renderAlerts();renderSavedChips();renderDeals();});});
 }
 function teardown(){
 if(fxRaf){cancelAnimationFrame(fxRaf);fxRaf=null;}
 LISTENERS.forEach(([t,ev,fn,opts])=>{try{t.removeEventListener(ev,fn,opts);}catch(e){}});
 LISTENERS.length=0;
 state.scanning=false;scanToken++;
-if(autoTimer){clearInterval(autoTimer);autoTimer=null;}autoNextAt=0;
+if(autoTimer){clearInterval(autoTimer);autoTimer=null;}autoNextAt=0;if(hbTimer){clearInterval(hbTimer);hbTimer=null;}
 ['drawerScrim','dealDrawer','liveScrim','livePanel','exportScrim','exportPanel','settingsScrim','settingsPanel'].forEach(id=>{const el=$(id);if(el)el.classList.remove('show');});
 const tb=$('toasts');if(tb)tb.innerHTML='';
 mounted=false;}
@@ -2275,6 +2305,7 @@ renderStats(true);
 updateScanMeta();
 setTab('results');
 startAutoTimer();
+startHeartbeat();
 loadRates(false).then(()=>{syncParamsUI();renderAll();refreshDrawer();});}
 A(document,'turbo:before-cache',teardown);
 A(document,'turbo:load',()=>{teardown();mount();});

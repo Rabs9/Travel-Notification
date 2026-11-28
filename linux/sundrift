@@ -1,0 +1,8 @@
+#!/bin/sh
+# Sundrift launcher (installed as /usr/bin/sundrift by the Fedora package).
+# Starts the local server on http://127.0.0.1:8765/ and opens it in the default
+# web browser. If Sundrift is already running it just opens the browser again.
+# It stops by itself about 30 minutes after the Sundrift page is closed.
+export OPEN_BROWSER=1
+export SUNDRIFT_IDLE_EXIT="${SUNDRIFT_IDLE_EXIT:-30}"
+exec /usr/bin/node /usr/share/sundrift/server.js "$@"

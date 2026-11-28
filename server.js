@@ -92,8 +92,14 @@ function send(res, status, type, body, extra) {
   res.end(body);
 }
 
+// Linux launcher: stop by itself N minutes after the last request (the open page pings every minute).
+// performance.now() is monotonic and doesn't count time the computer was asleep.
+const IDLE_MIN = Number(process.env.SUNDRIFT_IDLE_EXIT) || 0;
+let lastSeen = performance.now();
+
 async function handle(req, res) {
   if (!HOSTS.has(String(req.headers.host || '').toLowerCase())) return send(res, 421, 'text/plain', 'wrong host');
+  lastSeen = performance.now();
   if (req.method !== 'GET') return send(res, 405, 'text/plain', 'GET only');
   let u;
   try { u = new URL(req.url, 'http://localhost'); } catch { return send(res, 400, 'text/plain', 'bad request'); }
@@ -135,25 +141,39 @@ const APP_URL = `http://${HOST}:${PORT}/`;
 function openBrowser() {
   if (process.env.SUNDRIFT_NO_BROWSER) return;   // for automated tests
   try {
-    if (process.platform === 'win32') spawn('cmd', ['/c', 'start', '', APP_URL], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
-    else if (process.platform === 'darwin') spawn('open', [APP_URL], { detached: true, stdio: 'ignore' }).unref();
-    else spawn('xdg-open', [APP_URL], { detached: true, stdio: 'ignore' }).unref();
+    const c = process.platform === 'win32' ? spawn('cmd', ['/c', 'start', '', APP_URL], { detached: true, stdio: 'ignore', windowsHide: true })
+      : process.platform === 'darwin' ? spawn('open', [APP_URL], { detached: true, stdio: 'ignore' })
+      : spawn('xdg-open', [APP_URL], { detached: true, stdio: 'ignore' });
+    c.on('error', () => {});   // no browser opener on this system: the URL is still printed
+    c.unref();
   } catch {}
 }
 
 // In the .exe, keep the window open on a fatal error so the message can be read.
 function fatal(msg) {
   console.log('\n  ' + msg + '\n');
-  if (SEA) { console.log('  This window will close in 60 seconds.'); setTimeout(() => process.exit(1), 60000); }
-  else process.exit(1);
+  if (SEA) { console.log('  This window will close in 60 seconds.'); setTimeout(() => process.exit(1), 60000); return; }
+  // Linux menu launcher has no visible window: show the message as a desktop notification too.
+  if (process.platform === 'linux' && process.env.OPEN_BROWSER) {
+    try { const c = spawn('notify-send', ['--app-name=Sundrift', 'Sundrift', msg], { stdio: 'ignore' }); c.on('error', () => {}); } catch {}
+    setTimeout(() => process.exit(1), 1500);
+    return;
+  }
+  process.exit(1);
 }
 
 server.on('error', err => {
   if (err.code === 'EADDRINUSE') {
-    // Most likely Sundrift is already running (window minimised) — just show it again.
-    console.log(`\n  Sundrift is already running. Opening ${APP_URL} ...`);
-    if (SEA || process.env.OPEN_BROWSER) openBrowser();
-    setTimeout(() => process.exit(0), 4000);
+    // Usually Sundrift is already running (window minimised) — check it's really ours, then just show it again.
+    fetch(APP_URL + 'proxy/health', { signal: AbortSignal.timeout(3000) })
+      .then(r => r.json())
+      .then(j => {
+        if (!j || j.ok !== true || !Array.isArray(j.hosts)) throw new Error('not Sundrift');
+        console.log(`\n  Sundrift is already running. Opening ${APP_URL} ...`);
+        if (SEA || process.env.OPEN_BROWSER) openBrowser();
+        setTimeout(() => process.exit(0), 4000);
+      })
+      .catch(() => fatal(`Another program is using port ${PORT}, so Sundrift can't start. Close that program or restart the computer, then try again.`));
     return;
   }
   fatal('Sundrift could not start: ' + err.message);
@@ -172,4 +192,12 @@ server.listen(PORT, HOST, () => {
     console.log(`Sundrift on ${APP_URL}  (relay hosts: ${[...ALLOW].join(', ')})`);
   }
   if (SEA || process.env.OPEN_BROWSER) openBrowser();
+  if (IDLE_MIN > 0) {
+    setInterval(() => {
+      if (performance.now() - lastSeen > IDLE_MIN * 60000) {
+        console.log(`No open Sundrift page for ${IDLE_MIN} minutes — stopping.`);
+        process.exit(0);
+      }
+    }, Math.min(30000, IDLE_MIN * 30000));
+  }
 });

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.rabs9.sundrift</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <name>Sundrift</name>
+  <summary>Find real travel deals from Ottawa and Toronto</summary>
+  <description>
+    <p>
+      Tell Sundrift what kind of trip you want — where, how much, how many people,
+      all-inclusive, beach, pool — and it checks travel sites for real prices and
+      shows the best matches with a link to book.
+    </p>
+    <p>
+      Real prices come from Transat, Sunwing, Air Transat, Flair and Carnival.
+      Sundrift opens in your web browser and runs on your own computer.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.rabs9.sundrift.desktop</launchable>
+  <url type="homepage">https://github.com/Rabs9/Travel-Notification</url>
+  <developer id="io.github.rabs9">
+    <name>Rabs9</name>
+  </developer>
+  <categories>
+    <category>Utility</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="1.2.0" date="2026-11-28"/>
+  </releases>
+</component>

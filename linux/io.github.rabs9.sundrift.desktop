@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Sundrift
+GenericName=Travel Deal Finder
+Comment=Find real vacation, flight and cruise deals from Ottawa and Toronto
+Exec=sundrift
+Icon=io.github.rabs9.sundrift
+Terminal=false
+Categories=Utility;
+Keywords=travel;vacation;deals;flights;cruise;sunwing;transat;
+StartupNotify=false

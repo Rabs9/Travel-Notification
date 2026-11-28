@@ -1,8 +1,9 @@
-name: Android APK
+name: Release builds (Android + Fedora)
 
-# Builds a signed Sundrift.apk.
-#  - push a tag like v1.2.0  -> APK is attached to that GitHub Release
-#  - "Run workflow" button   -> APK is available as a build artifact (for testing)
+# Builds a signed Sundrift.apk and the Fedora package Sundrift-Fedora.rpm.
+#  - push a tag like v1.2.0  -> both are attached to that GitHub Release
+#  - "Run workflow" button   -> both are available as build artifacts (for testing)
+# (The Windows Sundrift.exe is built locally with ./build-windows.sh.)
 on:
   push:
     tags: ['v*']
@@ -19,6 +20,8 @@ jobs:
         working-directory: mobile
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -38,10 +41,13 @@ jobs:
           npm run sync
 
       - name: Version from tag
+        # release vA.B.C -> code (A*10000+B*100+C)*100; test builds sit just above the last release
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then V="${GITHUB_REF#refs/tags/v}"; else V="0.0.${GITHUB_RUN_NUMBER}"; fi
-          IFS=. read -r MA MI PA <<<"${V%%-*}"
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then CODE=$((MA*10000 + MI*100 + PA)); else CODE=$((GITHUB_RUN_NUMBER)); fi
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then V="${GITHUB_REF#refs/tags/v}"; TEST=0
+          else LAST=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo v0.0.0); V="${LAST#v}-test.${GITHUB_RUN_NUMBER}"; TEST=1; fi
+          IFS=. read -r MA MI PA <<<"${V%%-*}"; MA=${MA:-0}; MI=${MI:-0}; PA=${PA:-0}
+          CODE=$(( (MA*10000 + MI*100 + PA) * 100 ))
+          if [[ $TEST == 1 ]]; then CODE=$(( CODE + 1 + GITHUB_RUN_NUMBER % 99 )); fi
           echo "SUNDRIFT_VERSION_NAME=$V" >> "$GITHUB_ENV"
           echo "SUNDRIFT_VERSION_CODE=$CODE" >> "$GITHUB_ENV"
           echo "version $V (code $CODE)"
@@ -81,3 +87,41 @@ jobs:
         run: |
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --title "Sundrift $GITHUB_REF_NAME" --notes "See README for install steps."
           gh release upload "$GITHUB_REF_NAME" Sundrift.apk Sundrift.apk.sha256 --clobber
+
+  fedora-rpm:
+    runs-on: ubuntu-latest
+    container: registry.fedoraproject.org/fedora:45
+    steps:
+      - name: Tools
+        run: dnf -y install rpm-build git tar gh
+
+      - uses: actions/checkout@v4
+
+      - name: Build Sundrift-Fedora.rpm
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then V="${GITHUB_REF_NAME#v}"; else V="0.0.${GITHUB_RUN_NUMBER}"; fi
+          ./build-rpm.sh "$V"
+
+      - name: Install test in this Fedora
+        run: |
+          dnf -y install ./dist/Sundrift-Fedora.rpm
+          SUNDRIFT_NO_BROWSER=1 SUNDRIFT_IDLE_EXIT=1 sundrift > /tmp/sundrift.log 2>&1 &
+          for i in $(seq 1 20); do curl -sf -o /dev/null http://127.0.0.1:8765/proxy/health && break; sleep 0.5; done
+          curl -sf http://127.0.0.1:8765/ | grep -q '<title>Sundrift'
+          echo "installed package serves the app"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sundrift-rpm
+          path: |
+            dist/Sundrift-Fedora.rpm
+            dist/Sundrift-Fedora.rpm.sha256
+
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --title "Sundrift $GITHUB_REF_NAME" --notes "See README for install steps." || true
+          gh release upload "$GITHUB_REF_NAME" dist/Sundrift-Fedora.rpm dist/Sundrift-Fedora.rpm.sha256 --clobber

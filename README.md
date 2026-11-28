@@ -89,6 +89,41 @@ background.
 
 ---
 
+## Install on Fedora Linux (Fedora 45)
+
+1. In Firefox, open **https://github.com/Rabs9/Travel-Notification/releases/latest**
+   and click **Sundrift-Fedora.rpm** under "Assets" to download it.
+2. Open **Files → Downloads** and **double-click `Sundrift-Fedora.rpm`**.
+   The **Software** app opens. Click **Install** and type your password.
+   - If it warns that the software isn't from a trusted source or isn't
+     signed, choose **Install** / **Install anyway**. Sundrift isn't in
+     Fedora's own app store, so it isn't signed by Fedora.
+   - Software also installs Node.js, which Sundrift needs, by itself.
+3. Open your apps (the **Activities** button or the ⊞ grid) and click
+   **Sundrift**. Your web browser opens Sundrift.
+
+**Easiest way, if someone can type one line for you:** open **Terminal**,
+paste this, press Enter and type your password:
+
+    sudo dnf install https://github.com/Rabs9/Travel-Notification/releases/latest/download/Sundrift-Fedora.rpm
+
+**Using it:**
+- Click the **Sundrift** icon whenever you want to use it.
+- There's no extra window to keep open.
+- When you close the Sundrift tab, Sundrift stops by itself within about
+  half an hour.
+- If you click the icon while it's already running, your browser shows it
+  again.
+- Your settings are kept in your browser (always use the same browser).
+
+**Updating:** download the new `Sundrift-Fedora.rpm` and double-click it
+again, or run the same Terminal line.
+
+**Removing:** Software → Installed → Sundrift → **Uninstall**, or
+`sudo dnf remove sundrift`.
+
+---
+
 ## What it searches
 
 Real prices, no account or API key needed:
@@ -101,7 +136,7 @@ Real prices, no account or API key needed:
 | Flair | flights | — (doesn't fly from Ottawa) | ✅ |
 | Carnival | cruises (fly or drive to port, USD prices) | ✅ | ✅ |
 
-The **🔗 Search links** panel opens prefilled searches on the sites that don't
+The **🔎 Live searches** panel opens prefilled searches on the sites that don't
 publish prices:
 - **Flights:** Air Canada, WestJet, Porter and Expedia.ca.
 - **Packages:** WestJet Vacations, Air Canada Vacations, redtag.ca and
@@ -151,6 +186,20 @@ The .exe is unsigned, which is why Windows shows the "protected your PC"
 prompt.
 
 Upload `dist/Sundrift.exe` to a GitHub Release.
+
+### Build the Fedora package
+
+    ./build-rpm.sh 1.2.0    # -> dist/Sundrift-Fedora.rpm (needs rpm-build)
+
+`linux/` holds the files the package installs:
+- `sundrift.spec`: the RPM recipe.
+- `sundrift`: the launcher, installed as `/usr/bin/sundrift`. It runs
+  `server.js` with the system Node.js, opens the browser, and stops 30 minutes
+  after the page is closed (the page pings `/proxy/health` every minute).
+- The desktop entry, the AppStream metainfo and the icons.
+
+The release workflow also builds the RPM in a Fedora 45 container, does an
+install test there, and attaches the RPM to the release.
 
 ### Build the Android app
 
